@@ -1,4 +1,3 @@
-import numpy as np
 from typing import List, Union, Tuple
 
 class LinearRegression:
@@ -21,6 +20,10 @@ class LinearRegression:
         self.intercept: float = 0.0
         self.is_fitted: bool = False
     
+    def _mean(self, values: List[float]) -> float:
+        """Calculate the mean of a list of numbers"""
+        return sum(values) / len(values)
+    
     def fit(self, X: List[float], y: List[float]) -> None:
         """
         Fit the linear regression model to the data.
@@ -35,8 +38,8 @@ class LinearRegression:
             ZeroDivisionError: If X values are all the same
         """
         # Input validation
-        if not isinstance(X, (list, tuple, np.ndarray)) or not isinstance(y, (list, tuple, np.ndarray)):
-            raise TypeError("X and y must be lists, tuples, or numpy arrays")
+        if not isinstance(X, (list, tuple)) or not isinstance(y, (list, tuple)):
+            raise TypeError("X and y must be lists or tuples")
             
         if len(X) != len(y):
             raise ValueError("X and y must have the same length")
@@ -44,20 +47,20 @@ class LinearRegression:
         if len(X) < 2:
             raise ValueError("Need at least 2 data points for linear regression")
             
-        # Check for numeric types
+        # Check for numeric types and convert to float
         try:
-            X = np.array(X, dtype=float)
-            y = np.array(y, dtype=float)
+            X = [float(x) for x in X]
+            y = [float(y_val) for y_val in y]
         except (ValueError, TypeError):
             raise TypeError("All values in X and y must be numeric (int or float)")
             
         # Calculate means
-        mean_x = np.mean(X)
-        mean_y = np.mean(y)
+        mean_x = self._mean(X)
+        mean_y = self._mean(y)
         
         # Calculate slope and intercept
-        numerator = np.sum((X - mean_x) * (y - mean_y))
-        denominator = np.sum((X - mean_x) ** 2)
+        numerator = sum((x - mean_x) * (y_val - mean_y) for x, y_val in zip(X, y))
+        denominator = sum((x - mean_x) ** 2 for x in X)
         
         if denominator == 0:
             raise ZeroDivisionError("Cannot compute slope: all X values are the same")

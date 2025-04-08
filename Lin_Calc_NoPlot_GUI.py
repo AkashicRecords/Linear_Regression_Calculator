@@ -1,10 +1,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from Lin_Calc import LinearRegression
 
-class LinearRegressionGUI:
+class LinearRegressionSimpleGUI:
     def __init__(self, root):
         self.root = root
         self.root.title("Linear Regression Calculator")
@@ -34,25 +32,44 @@ class LinearRegressionGUI:
         self.status_label = ttk.Label(main_frame, text="Model Status: Not Fitted", foreground="red")
         self.status_label.grid(row=4, column=0, columnspan=2, pady=5)
         
+        # Model equation
+        self.equation_label = ttk.Label(main_frame, text="Equation: y = mx + b")
+        self.equation_label.grid(row=5, column=0, columnspan=2, pady=5)
+        
         # Prediction section
-        ttk.Label(main_frame, text="Make Prediction", font=('Helvetica', 12, 'bold')).grid(row=5, column=0, columnspan=2, pady=5)
+        ttk.Label(main_frame, text="Make Prediction", font=('Helvetica', 12, 'bold')).grid(row=6, column=0, columnspan=2, pady=5)
         
         # X value for prediction
-        ttk.Label(main_frame, text="X value to predict:").grid(row=6, column=0, sticky=tk.W)
+        ttk.Label(main_frame, text="X value to predict:").grid(row=7, column=0, sticky=tk.W)
         self.predict_entry = ttk.Entry(main_frame, width=40)
-        self.predict_entry.grid(row=6, column=1, padx=5, pady=2)
+        self.predict_entry.grid(row=7, column=1, padx=5, pady=2)
         
         # Predict button
-        ttk.Button(main_frame, text="Predict", command=self.make_prediction).grid(row=7, column=0, columnspan=2, pady=10)
+        ttk.Button(main_frame, text="Predict", command=self.make_prediction).grid(row=8, column=0, columnspan=2, pady=10)
         
         # Result display
         self.result_label = ttk.Label(main_frame, text="")
-        self.result_label.grid(row=8, column=0, columnspan=2, pady=5)
+        self.result_label.grid(row=9, column=0, columnspan=2, pady=5)
         
-        # Create matplotlib figure for plotting
-        self.fig, self.ax = plt.subplots(figsize=(6, 4))
-        self.canvas = FigureCanvasTkAgg(self.fig, master=main_frame)
-        self.canvas.get_tk_widget().grid(row=9, column=0, columnspan=2, pady=10)
+        # Data visualization (table)
+        ttk.Label(main_frame, text="Data Points", font=('Helvetica', 12, 'bold')).grid(row=10, column=0, columnspan=2, pady=5)
+        
+        # Create treeview for data display
+        self.tree = ttk.Treeview(main_frame, columns=('x', 'y', 'predicted'), show='headings', height=5)
+        self.tree.grid(row=11, column=0, columnspan=2, pady=10)
+        
+        # Configure columns
+        self.tree.heading('x', text='X value')
+        self.tree.heading('y', text='Y value')
+        self.tree.heading('predicted', text='Predicted Y')
+        self.tree.column('x', width=100, anchor='center')
+        self.tree.column('y', width=100, anchor='center')
+        self.tree.column('predicted', width=100, anchor='center')
+        
+        # Add scrollbar
+        scrollbar = ttk.Scrollbar(main_frame, orient="vertical", command=self.tree.yview)
+        scrollbar.grid(row=11, column=2, sticky='ns')
+        self.tree.configure(yscrollcommand=scrollbar.set)
         
         # Add some sample data
         self.x_entry.insert(0, "1, 2, 3, 4, 5")
@@ -75,14 +92,8 @@ class LinearRegressionGUI:
                 raise
             raise ValueError("Please enter valid numbers separated by commas")
     
-    def create_line_points(self, x_data, num_points=100):
-        """Create evenly spaced points for plotting the regression line"""
-        x_min, x_max = min(x_data), max(x_data)
-        step = (x_max - x_min) / (num_points - 1)
-        return [x_min + step * i for i in range(num_points)]
-    
     def fit_model(self):
-        """Fit the model with input data and update the plot"""
+        """Fit the model with input data and update the display"""
         try:
             # Get and parse input data
             X = self.parse_input(self.x_entry.get())
@@ -91,21 +102,17 @@ class LinearRegressionGUI:
             # Fit the model
             self.model.fit(X, y)
             
-            # Update the plot
-            self.ax.clear()
-            self.ax.scatter(X, y, color='blue', label='Data points')
+            # Update the equation display
+            self.equation_label.config(text=f"Equation: y = {self.model.slope:.2f}x + {self.model.intercept:.2f}")
             
-            # Plot the regression line using list comprehension
-            x_line = self.create_line_points(X)
-            y_line = [self.model.predict(x) for x in x_line]
-            self.ax.plot(x_line, y_line, color='red', label='Regression line')
+            # Clear the tree
+            for item in self.tree.get_children():
+                self.tree.delete(item)
             
-            self.ax.set_xlabel('X')
-            self.ax.set_ylabel('Y')
-            self.ax.legend()
-            self.ax.grid(True)
-            
-            self.canvas.draw()
+            # Add data to the tree
+            for i, (x_val, y_val) in enumerate(zip(X, y)):
+                predicted = self.model.predict(x_val)
+                self.tree.insert('', 'end', values=(f"{x_val:.2f}", f"{y_val:.2f}", f"{predicted:.2f}"))
             
             # Update status
             self.status_label.config(text="Model Status: Fitted", foreground="green")
@@ -127,10 +134,9 @@ class LinearRegressionGUI:
             
             self.result_label.config(text=f"Predicted Y value: {y_pred:.2f}")
             
-            # Update plot to show prediction point
-            self.ax.scatter([x_pred], [y_pred], color='green', s=100, label='Prediction')
-            self.ax.legend()
-            self.canvas.draw()
+            # Add prediction to the tree with a special tag
+            self.tree.insert('', 'end', values=(f"{x_pred:.2f}", "N/A", f"{y_pred:.2f}"), tags=('prediction',))
+            self.tree.tag_configure('prediction', background='light green')
             
         except ValueError:
             messagebox.showerror("Error", "Please enter a valid number for prediction")
@@ -139,5 +145,5 @@ class LinearRegressionGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = LinearRegressionGUI(root)
+    app = LinearRegressionSimpleGUI(root)
     root.mainloop() 

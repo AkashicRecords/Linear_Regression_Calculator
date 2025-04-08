@@ -1,3 +1,5 @@
+![Linear Regression Algorithm](images/linear_regression_header.png)
+
 # Linear Regression Calculator
 
 A simple and efficient linear regression calculator with both GUI and command-line interfaces.
