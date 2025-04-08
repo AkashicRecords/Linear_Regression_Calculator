@@ -1,6 +1,7 @@
 # Handoff Documentation - Not tracked in git
 HandOff/
 HandOff-History/
+archive_handoff.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
